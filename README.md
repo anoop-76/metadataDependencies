@@ -4,7 +4,7 @@ Sample wrapper around [Dependencies API](https://releasenotes.docs.salesforce.co
 
 The wrapper make it even easier to query and produces the output in human readable format.
 
-1) It will create a list of dependencies in a [csv](https://git.soma.salesforce.com/anoop-singh/metadataDependencies/blob/master/Metadata_Dependencies.png) under 'My Personal Documents'
+1) It will create a list of dependencies in a [csv](https://github.com/anoop-76/metadataDependencies/blob/master/Metadata_Dependencies.png) under 'My Personal Documents'
 
 2) Email the dependencies in a .csv document to the user running.
 
