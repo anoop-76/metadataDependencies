@@ -1,4 +1,3 @@
-
 // @author anoop.singh
 public with sharing class DependencyService {
 
@@ -26,6 +25,8 @@ public with sharing class DependencyService {
             System.debug('QueryResult result.records='+ result.records);
             List<ToolingService.MetadataComponentDependency> dependencies = (List<ToolingService.MetadataComponentDependency>)result.records;
 			createCsv(dependencies);
+
+            createDOTFormat(dependencies, 'graph');
         }
         return service;
     }
@@ -111,7 +112,72 @@ public with sharing class DependencyService {
 
         System.debug('doc.id=' + doc.id);
         System.debug('doc=' + doc);
+
+        // Send email
         sendEmail(documentName, Blob.valueOf(csvFile), doc);
+    }
+
+    // Create DOT format
+    private static void createDOTFormat(List<ToolingService.MetadataComponentDependency> records, String reportType) {
+        Map<String, ToolingService.MetadataComponentDependency> graph = new Map<String, ToolingService.MetadataComponentDependency>();
+        Map<String, ToolingService.MetadataComponentDependency> nodes = new Map<String, ToolingService.MetadataComponentDependency>();
+		Map<String, String> edges = new Map<String, String>();
+
+        for(ToolingService.MetadataComponentDependency record: records) {
+            if(record.refMetadataComponentName != null
+            	&&
+            	record.refMetadataComponentName.startsWith('0')) {
+             	continue;
+			}
+
+			ToolingService.MetadataComponentDependency dependency = new ToolingService.MetadataComponentDependency();
+        	dependency.metadataComponentName = record.metadataComponentName;
+        	dependency.metadataComponentType = record.metadataComponentType;
+        	graph.put(record.MetadataComponentId, dependency);
+
+        	ToolingService.MetadataComponentDependency refDependency = new ToolingService.MetadataComponentDependency();
+        	refDependency.metadataComponentName = record.refMetadataComponentName;
+        	refDependency.metadataComponentType = record.refMetadataComponentType;
+        	graph.put(record.refMetadataComponentId, refDependency);
+
+            edges.put(record.metadataComponentId, record.refMetadataComponentId);
+
+        }
+
+		// Render as DOT format
+        String dotFormat = '';
+        dotFormat +='digraph graphname { \n';
+        dotFormat +='  rankdir=RL;\n';
+        dotFormat +='  node[shape=Mrecord, bgcolor=black, fillcolor=lightblue, style=filled];\n';
+		dotFormat +='  // Nodes\n';
+
+        for(String node : graph.keySet()) {
+        	ToolingService.MetadataComponentDependency dependency = graph.get(node);
+            dotFormat +='  X' + node + ' [label=<' + dependency.metadataComponentName + '<BR/><FONT POINT-SIZE="8">' + dependency.metadataComponentType + '</FONT>>]\n';
+        }
+        dotFormat +='  // Paths\n';
+
+        for (String edge : edges.keySet()) {
+            dotFormat +='  X' + edge + '->X' + edges.get(edge) + '\n';
+        }
+
+		dotFormat +='} \n';
+        System.debug('#dotFormat, Copy this text and paste in http://viz-js.com/=\n' + dotFormat );
+
+		/*
+		String documentName = 'MetadataDependencies-Graph-' + reportType + '-' + Datetime.now().format('MMM') + Datetime.now().year() + '.txt';
+		// Insert the generated CSV file in Document object under "My Personal Documents".
+        Document doc = new Document(
+            Name = documentName,
+            Body = Blob.valueOf(dotFormat),
+            AuthorId = UserInfo.getUserId(),
+            FolderId = UserInfo.getUserId(),
+            Type = 'text',
+            ContentType='text/plain');
+        insert doc;
+        System.debug('graph doc.id=' + doc.id);
+        */
+
     }
 
     private static void sendEmail(String name, blob b, Document doc) {
